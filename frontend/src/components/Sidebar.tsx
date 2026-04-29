@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, TrendingUp, TrendingDown, FileText,
-  CreditCard, BarChart3, Target, PieChart, X, Heart,
+  CreditCard, BarChart3, Target, PieChart, X, Heart, Upload,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -14,6 +14,7 @@ const nav = [
   { to: '/investimentos', label: 'Investimentos', icon: BarChart3 },
   { to: '/metas', label: 'Metas', icon: Target },
   { to: '/planejamento', label: 'Planejamento', icon: PieChart },
+  { to: '/importar', label: 'Importar XLSX', icon: Upload },
 ];
 
 interface Props { open: boolean; onClose: () => void; }

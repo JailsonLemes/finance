@@ -121,7 +121,8 @@ export const INCOME_CATEGORIES = [
 
 export const EXPENSE_CATEGORIES = [
   'Alimentação', 'Moradia', 'Transporte', 'Saúde', 'Educação',
-  'Lazer', 'Vestuário', 'Beleza', 'Tecnologia', 'Viagem', 'Pets', 'Outros',
+  'Lazer', 'Vestuário', 'Beleza', 'Tecnologia', 'Viagem', 'Pets',
+  'Pessoal', 'Financiamentos', 'Outros',
 ];
 
 export const PAYMENT_METHODS = [
