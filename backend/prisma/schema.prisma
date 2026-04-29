@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  name        String
+  partnerName String?  @map("partner_name")
+  darkMode    Boolean  @default(false) @map("dark_mode")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  incomes     Income[]
+  expenses    Expense[]
+  bills       Bill[]
+  cards       Card[]
+  investments Investment[]
+  goals       Goal[]
+  plannings   Planning[]
+
+  @@map("users")
+}
+
+model Income {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  date        DateTime
+  description String
+  category    String
+  value       Float
+  type        String   // fixed, variable
+  person      String   // partner1, partner2, both
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("incomes")
+}
+
+model Expense {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  date          DateTime
+  description   String
+  category      String
+  subcategory   String?
+  value         Float
+  person        String
+  paymentMethod String    @map("payment_method")
+  dueDate       DateTime? @map("due_date")
+  cardId        String?   @map("card_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card          Card?     @relation(fields: [cardId], references: [id])
+
+  @@map("expenses")
+}
+
+model Bill {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  description String
+  value       Float
+  dueDate     DateTime  @map("due_date")
+  category    String
+  responsible String
+  status      String    @default("pending") // paid, pending, overdue
+  paid        Boolean   @default(false)
+  paidAt      DateTime? @map("paid_at")
+  recurrent   Boolean   @default(false)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("bills")
+}
+
+model Card {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  name         String
+  cardLimit    Float    @map("card_limit")
+  closingDay   Int      @map("closing_day")
+  dueDay       Int      @map("due_day")
+  color        String   @default("#6366f1")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenses     Expense[]
+  installments Installment[]
+
+  @@map("cards")
+}
+
+model Installment {
+  id                 String   @id @default(cuid())
+  cardId             String   @map("card_id")
+  description        String
+  totalValue         Float    @map("total_value")
+  installmentValue   Float    @map("installment_value")
+  totalInstallments  Int      @map("total_installments")
+  currentInstallment Int      @map("current_installment")
+  date               DateTime
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  card               Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@map("installments")
+}
+
+model Investment {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  type          String   // stocks, fixed_income, real_estate, crypto, savings, other
+  description   String
+  investedValue Float    @map("invested_value")
+  currentValue  Float    @map("current_value")
+  profitability Float    @default(0)
+  date          DateTime
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("investments")
+}
+
+model Goal {
+  id           String    @id @default(cuid())
+  userId       String    @map("user_id")
+  title        String
+  description  String?
+  targetValue  Float     @map("target_value")
+  currentValue Float     @default(0) @map("current_value")
+  targetDate   DateTime? @map("target_date")
+  category     String
+  color        String    @default("#6366f1")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("goals")
+}
+
+model Planning {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  month         Int
+  year          Int
+  category      String
+  plannedValue  Float    @map("planned_value")
+  realizedValue Float    @default(0) @map("realized_value")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month, year, category])
+  @@map("plannings")
+}

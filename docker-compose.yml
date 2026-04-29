@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fincouple_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fincouple
+      POSTGRES_PASSWORD: fincouple123
+      POSTGRES_DB: fincouple
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U fincouple']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fincouple_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://fincouple:fincouple123@postgres:5432/fincouple
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL}
+      PORT: 3001
+      NODE_ENV: production
+
+    ports:
+      - '3001:3001'
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: fincouple_web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - '80:80'
+    environment:
+      VITE_API_URL: http://localhost:3001
+
+volumes:
+  pgdata:
