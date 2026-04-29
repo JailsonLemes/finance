@@ -1,46 +1,216 @@
 # FinCouple — Controle Financeiro do Casal
 
-Sistema web completo de controle financeiro para casais, com dashboard, contas a pagar, investimentos, metas e planejamento.
+Sistema web completo de controle financeiro para casais, com dashboard, contas a pagar, cartões, investimentos, metas e planejamento orçamentário.
 
 ## Stack
 
-| Camada | Tecnologia |
-|--------|-----------|
+| Camada   | Tecnologia                                             |
+| -------- | ------------------------------------------------------ |
 | Frontend | React 18 + TypeScript + Vite + Tailwind CSS + Recharts |
-| Backend | Node.js + Express + Prisma ORM |
-| Banco | PostgreSQL 16 |
-| Auth | JWT (30 dias) |
-| Deploy | Docker + Docker Compose |
+| Backend  | Node.js + Express + Prisma ORM                         |
+| Banco    | PostgreSQL 16                                          |
+| Auth     | JWT (30 dias)                                          |
+| Deploy   | Docker + Docker Compose                                |
 
 ---
 
 ## Pré-requisitos
 
-- [Docker](https://docs.docker.com/get-docker/) instalado
-- [Docker Compose](https://docs.docker.com/compose/) v2+
+- [Docker](https://docs.docker.com/get-docker/) e [Docker Compose](https://docs.docker.com/compose/) v2+
 
 ---
 
-## Iniciar com Docker (recomendado)
+## Início rápido
 
 ```bash
-# 1. Clone ou entre na pasta do projeto
-cd financial-control
+# 1. Clone o repositório
+git clone git@github.com:JailsonLemes/finance.git
+cd finance
 
-# 2. Suba todos os serviços
+# 2. Crie o arquivo de variáveis de ambiente
+cp .env.example .env
+# Edite .env e defina um JWT_SECRET forte
+
+# 3. Suba todos os serviços
 docker compose up --build -d
-
-# 3. Aguarde ~30 segundos e acesse
-# Frontend: http://localhost
-# Backend API: http://localhost:3001
-# Health check: http://localhost:3001/health
 ```
 
-### Usuário demo (opcional)
+Aguarde ~30 segundos e acesse:
+
+| Serviço      | URL                                       |
+| ------------ | ----------------------------------------- |
+| Aplicação    | <http://localhost>                        |
+| API          | <http://localhost:3001>                   |
+| Health check | <http://localhost:3001/health>            |
+
+---
+
+## Variáveis de ambiente
+
+Crie um arquivo `.env` na raiz do projeto a partir do exemplo:
 
 ```bash
-docker compose exec backend npm run seed
-# Email: demo@fincouple.com | Senha: demo123
+cp .env.example .env
+```
+
+| Variável       | Descrição                              | Exemplo              |
+| -------------- | -------------------------------------- | -------------------- |
+| `JWT_SECRET`   | Chave secreta para assinar tokens JWT  | string aleatória     |
+| `FRONTEND_URL` | Origem permitida no CORS               | `http://localhost`   |
+
+> O `.env` está no `.gitignore` e **nunca deve ser commitado**.
+
+---
+
+## Funcionalidades
+
+### Dashboard
+
+- Saldo do mês, total de receitas, despesas e contas pendentes
+- Indicador de saúde financeira (0–100%)
+- Gráfico de pizza — despesas por categoria
+- Gráfico de linha — evolução dos últimos 6 meses
+- Alerta de contas atrasadas
+
+### Receitas
+
+- CRUD completo com filtro por mês/categoria/pessoa
+- Tipos: fixa / variável
+- Exportação para Excel
+
+### Despesas
+
+- CRUD completo com filtro por mês/categoria/pessoa/forma de pagamento
+- Integração com cartões de crédito
+- Gráfico de distribuição por categoria em tempo real
+- Exportação para Excel
+
+### Contas a Pagar
+
+- **Checkbox com atualização otimista** — feedback visual imediato ao marcar/desmarcar
+- Status automático: Pago · Pendente · Atrasado (calculado por data)
+- **Recorrência automática** — contas recorrentes são geradas ao abrir um novo mês
+- Registro automático da data de pagamento
+- Filtro por status e exportação para Excel
+
+### Cartões de Crédito
+
+- Controle de fatura do ciclo atual
+- Gestão de parcelamentos
+- Barra visual de limite disponível / utilizado
+
+### Investimentos
+
+- Tipos: renda fixa, ações, FII, cripto, poupança
+- Cálculo de rentabilidade e retorno total
+- Distribuição em gráfico de pizza
+
+### Metas Financeiras
+
+- Barra de progresso visual por meta
+- Botão de contribuição rápida
+- Cores e categorias personalizadas
+
+### Planejamento
+
+- Orçamento previsto vs. realizado por categoria
+- Alertas de estouro de orçamento
+- Gráfico de barras comparativo
+- Sincronização automática com despesas lançadas
+
+### UX / UI
+
+- Modo escuro / claro com persistência
+- Design responsivo (mobile e desktop)
+- Navegação lateral com ícones
+
+---
+
+## Estrutura do projeto
+
+```text
+finance/
+├── .env.example
+├── .gitignore
+├── docker-compose.yml
+│
+├── backend/
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── prisma/
+│   │   ├── schema.prisma        # Modelos do banco (8 entidades)
+│   │   ├── seed.js              # Dados iniciais de demonstração
+│   │   └── import.js            # Script de importação via JSON
+│   └── src/
+│       ├── index.js             # Entry point, CORS, rate limit
+│       ├── lib/
+│       │   └── prisma.js        # Singleton do PrismaClient
+│       ├── middleware/
+│       │   ├── auth.js          # Verificação JWT
+│       │   └── errorHandler.js
+│       └── routes/
+│           ├── auth.js
+│           ├── dashboard.js
+│           ├── income.js
+│           ├── expenses.js
+│           ├── bills.js
+│           ├── cards.js
+│           ├── investments.js
+│           ├── goals.js
+│           └── planning.js
+│
+└── frontend/
+    ├── Dockerfile
+    ├── nginx.conf
+    └── src/
+        ├── App.tsx
+        ├── utils/
+        │   └── fmt.ts           # Formatação de moeda (BRL)
+        ├── contexts/
+        │   ├── AuthContext.tsx
+        │   └── ThemeContext.tsx
+        ├── services/
+        │   └── api.ts           # Axios + interceptor JWT
+        ├── types/
+        │   └── index.ts
+        ├── components/
+        │   ├── Layout.tsx
+        │   ├── Sidebar.tsx
+        │   ├── Header.tsx
+        │   ├── Modal.tsx
+        │   ├── StatCard.tsx
+        │   └── MonthPicker.tsx
+        └── pages/
+            ├── Login.tsx
+            ├── Dashboard.tsx
+            ├── Income.tsx
+            ├── Expenses.tsx
+            ├── Bills.tsx
+            ├── Cards.tsx
+            ├── Investments.tsx
+            ├── Goals.tsx
+            └── Planning.tsx
+```
+
+---
+
+## Comandos úteis
+
+```bash
+# Acompanhar logs em tempo real
+docker compose logs -f
+
+# Parar os serviços
+docker compose down
+
+# Parar e remover o banco de dados (reset completo)
+docker compose down -v
+
+# Acessar o banco via CLI
+docker compose exec postgres psql -U fincouple
+
+# Abrir o Prisma Studio (interface visual do banco)
+docker compose exec backend npx prisma studio
 ```
 
 ---
@@ -53,12 +223,12 @@ docker compose exec backend npm run seed
 cd backend
 npm install
 
-# Crie o arquivo .env
-cp .env.example .env
-# Edite DATABASE_URL com sua conexão PostgreSQL
+# Configure as variáveis de ambiente
+cp ../.env.example .env
+# Ajuste DATABASE_URL para sua instância PostgreSQL local
 
-npx prisma migrate dev --name init
-npm run dev
+npx prisma db push
+npm run dev   # porta 3001
 ```
 
 ### Frontend
@@ -66,152 +236,5 @@ npm run dev
 ```bash
 cd frontend
 npm install
-npm run dev
-# Acesse: http://localhost:5173
-```
-
----
-
-## Variáveis de ambiente
-
-### Backend (`backend/.env`)
-
-```env
-DATABASE_URL=postgresql://fincouple:fincouple123@localhost:5432/fincouple
-JWT_SECRET=supersecretjwtkey2024fincouple
-PORT=3001
-NODE_ENV=development
-```
-
----
-
-## Funcionalidades
-
-### Dashboard
-- Saldo do mês, receitas, despesas, contas pendentes
-- Indicador de saúde financeira (0–100%)
-- Gráfico de pizza — despesas por categoria
-- Gráfico de linha — evolução dos últimos 6 meses
-- Alerta de contas atrasadas
-
-### Receitas
-- CRUD completo com filtro por mês
-- Tipos: fixa / variável
-- Por pessoa (parceiro 1, parceiro 2, ambos)
-- Exportação para Excel
-
-### Despesas
-- CRUD completo com filtro por mês
-- Integração com cartões de crédito
-- Gráfico por categoria em tempo real
-- Exportação para Excel
-
-### Contas a Pagar ⭐
-- **Checkbox interativo** — clique para marcar/desmarcar pagamento
-- Status automático: 🟢 Pago · 🟡 Pendente · 🔴 Atrasado
-- Registro automático da data de pagamento
-- Filtro por status + exportação
-
-### Cartões de Crédito
-- Controle visual de faturas
-- Parcelas (adicionar parcelamentos)
-- Barra de limite disponível
-
-### Investimentos
-- Tipos: renda fixa, ações, FII, cripto, poupança
-- Cálculo de rentabilidade
-- Distribuição em gráfico de pizza
-
-### Metas Financeiras
-- Barra de progresso visual por meta
-- Botão "Contribuir" para adicionar valores
-- Cores personalizadas
-
-### Planejamento
-- Orçamento previsto vs realizado por categoria
-- Alertas de estouro de orçamento
-- Gráfico de barras comparativo
-
-### UX/UI
-- Modo escuro / claro (salvo no navegador)
-- Design responsivo (mobile + desktop)
-- Navegação lateral com ícones
-- Filtro de mês com setas
-
----
-
-## Estrutura do projeto
-
-```
-financial-control/
-├── docker-compose.yml
-├── backend/
-│   ├── Dockerfile
-│   ├── package.json
-│   ├── prisma/
-│   │   ├── schema.prisma      # Modelos do banco
-│   │   └── seed.js            # Dados demo
-│   └── src/
-│       ├── index.js
-│       ├── middleware/
-│       │   ├── auth.js
-│       │   └── errorHandler.js
-│       └── routes/
-│           ├── auth.js
-│           ├── dashboard.js
-│           ├── income.js
-│           ├── expenses.js
-│           ├── bills.js
-│           ├── cards.js
-│           ├── investments.js
-│           ├── goals.js
-│           └── planning.js
-└── frontend/
-    ├── Dockerfile
-    ├── nginx.conf
-    ├── src/
-    │   ├── App.tsx
-    │   ├── contexts/
-    │   │   ├── AuthContext.tsx
-    │   │   └── ThemeContext.tsx
-    │   ├── services/api.ts
-    │   ├── types/index.ts
-    │   ├── components/
-    │   │   ├── Layout.tsx
-    │   │   ├── Sidebar.tsx
-    │   │   ├── Header.tsx
-    │   │   ├── Modal.tsx
-    │   │   ├── StatCard.tsx
-    │   │   └── MonthPicker.tsx
-    │   └── pages/
-    │       ├── Login.tsx
-    │       ├── Dashboard.tsx
-    │       ├── Income.tsx
-    │       ├── Expenses.tsx
-    │       ├── Bills.tsx
-    │       ├── Cards.tsx
-    │       ├── Investments.tsx
-    │       ├── Goals.tsx
-    │       └── Planning.tsx
-```
-
----
-
-## Comandos úteis
-
-```bash
-# Ver logs em tempo real
-docker compose logs -f
-
-# Parar tudo
-docker compose down
-
-# Parar e apagar banco de dados
-docker compose down -v
-
-# Acessar banco via CLI
-docker compose exec postgres psql -U fincouple
-
-# Ver migrações do Prisma
-docker compose exec backend npx prisma studio
+npm run dev   # porta 5173
 ```
