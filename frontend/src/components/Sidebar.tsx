@@ -1,20 +1,20 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, TrendingUp, TrendingDown, FileText,
-  CreditCard, BarChart3, Target, PieChart, X, Heart, Upload,
+  CreditCard, BarChart3, Target, PieChart, X, Heart, Zap,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const nav = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, exact: true },
-  { to: '/receitas', label: 'Receitas', icon: TrendingUp },
-  { to: '/despesas', label: 'Despesas', icon: TrendingDown },
-  { to: '/contas', label: 'Contas a Pagar', icon: FileText },
-  { to: '/cartoes', label: 'Cartões', icon: CreditCard },
-  { to: '/investimentos', label: 'Investimentos', icon: BarChart3 },
-  { to: '/metas', label: 'Metas', icon: Target },
-  { to: '/planejamento', label: 'Planejamento', icon: PieChart },
-  { to: '/importar', label: 'Importar XLSX', icon: Upload },
+  { to: '/',              label: 'Dashboard',      icon: LayoutDashboard, exact: true },
+  { to: '/receitas',      label: 'Receitas',        icon: TrendingUp },
+  { to: '/despesas',      label: 'Despesas',        icon: TrendingDown },
+  { to: '/contas',        label: 'Contas a Pagar',  icon: FileText },
+  { to: '/cartoes',       label: 'Cartões',         icon: CreditCard },
+  { to: '/investimentos', label: 'Investimentos',   icon: BarChart3 },
+  { to: '/metas',         label: 'Metas',           icon: Target },
+  { to: '/planejamento',  label: 'Planejamento',    icon: PieChart },
+  { to: '/integracoes',   label: 'Integrações',     icon: Zap, badge: 'NEW' },
 ];
 
 interface Props { open: boolean; onClose: () => void; }
@@ -24,7 +24,6 @@ export default function Sidebar({ open, onClose }: Props) {
 
   return (
     <>
-      {/* Mobile overlay */}
       {open && (
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -61,7 +60,7 @@ export default function Sidebar({ open, onClose }: Props) {
 
         {/* Nav */}
         <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
-          {nav.map(({ to, label, icon: Icon, exact }) => (
+          {nav.map(({ to, label, icon: Icon, exact, badge }) => (
             <NavLink
               key={to}
               to={to}
@@ -76,13 +75,18 @@ export default function Sidebar({ open, onClose }: Props) {
               `}
             >
               <Icon className="w-4 h-4 flex-shrink-0" />
-              {label}
+              <span className="flex-1">{label}</span>
+              {badge && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary-600 text-white font-semibold">
+                  {badge}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
 
         <div className="p-4 text-center text-xs text-gray-400 dark:text-gray-600">
-          FinCouple v1.0
+          FinCouple v1.1
         </div>
       </aside>
     </>

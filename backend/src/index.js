@@ -3,23 +3,43 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
-const authRoutes = require('./routes/auth');
-const dashboardRoutes = require('./routes/dashboard');
-const incomeRoutes = require('./routes/income');
-const expenseRoutes = require('./routes/expenses');
-const billRoutes = require('./routes/bills');
-const cardRoutes = require('./routes/cards');
-const investmentRoutes = require('./routes/investments');
-const goalRoutes = require('./routes/goals');
-const planningRoutes = require('./routes/planning');
-const { errorHandler } = require('./middleware/errorHandler');
+// ─── Validação de envs críticas no startup ────────────────────────────────────
+const REQUIRED = ['JWT_SECRET', 'DATABASE_URL'];
+for (const key of REQUIRED) {
+  if (!process.env[key]) {
+    console.error(`FATAL: variável de ambiente obrigatória ausente: ${key}`);
+    process.exit(1);
+  }
+}
+if (process.env.JWT_SECRET.length < 32) {
+  console.error('FATAL: JWT_SECRET deve ter no mínimo 32 caracteres. Gere com: openssl rand -base64 48');
+  process.exit(1);
+}
+const GOOGLE_VARS = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT_URI'];
+for (const key of GOOGLE_VARS) {
+  if (!process.env[key]) {
+    console.warn(`AVISO: ${key} ausente — integração Google Sheets não funcionará`);
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
-const app = express();
+const authRoutes        = require('./routes/auth');
+const dashboardRoutes   = require('./routes/dashboard');
+const incomeRoutes      = require('./routes/income');
+const expenseRoutes     = require('./routes/expenses');
+const billRoutes        = require('./routes/bills');
+const cardRoutes        = require('./routes/cards');
+const investmentRoutes  = require('./routes/investments');
+const goalRoutes        = require('./routes/goals');
+const planningRoutes    = require('./routes/planning');
+const integrationRoutes = require('./routes/integrations');
+const { errorHandler }  = require('./middleware/errorHandler');
+
+const app  = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(helmet());
 
-// #2 fix: never mix wildcard origin with credentials
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost',
   credentials: true,
@@ -27,33 +47,43 @@ app.use(cors({
 
 app.use(express.json());
 
-// Global limiter (generous — bots still get blocked)
+// Rate limit global
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 });
 app.use(limiter);
 
-// #9 fix: tight limiter on auth endpoints
+// Rate limit específico para auth
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
   message: { error: 'Muitas tentativas. Tente novamente em 15 minutos.' },
 });
-app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/login',    authLimiter);
 app.use('/api/auth/register', authLimiter);
 
-app.use('/api/auth', authRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/incomes', incomeRoutes);
-app.use('/api/expenses', expenseRoutes);
-app.use('/api/bills', billRoutes);
-app.use('/api/cards', cardRoutes);
-app.use('/api/investments', investmentRoutes);
-app.use('/api/goals', goalRoutes);
-app.use('/api/planning', planningRoutes);
+// Rate limit específico para sync (evita spam no botão)
+const syncLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: { error: 'Aguarde alguns segundos antes de sincronizar novamente.' },
+});
+app.use('/api/integrations/google/sync', syncLimiter);
+
+// Rotas
+app.use('/api/auth',         authRoutes);
+app.use('/api/dashboard',    dashboardRoutes);
+app.use('/api/incomes',      incomeRoutes);
+app.use('/api/expenses',     expenseRoutes);
+app.use('/api/bills',        billRoutes);
+app.use('/api/cards',        cardRoutes);
+app.use('/api/investments',  investmentRoutes);
+app.use('/api/goals',        goalRoutes);
+app.use('/api/planning',     planningRoutes);
+app.use('/api/integrations', integrationRoutes);
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-  console.log(`FinCouple API rodando na porta ${PORT}`);
+  console.log(`FinCouple API rodando na porta ${PORT} [${process.env.NODE_ENV || 'development'}]`);
 });

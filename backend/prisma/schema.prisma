@@ -17,13 +17,14 @@ model User {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  incomes     Income[]
-  expenses    Expense[]
-  bills       Bill[]
-  cards       Card[]
-  investments Investment[]
-  goals       Goal[]
-  plannings   Planning[]
+  incomes           Income[]
+  expenses          Expense[]
+  bills             Bill[]
+  cards             Card[]
+  investments       Investment[]
+  goals             Goal[]
+  plannings         Planning[]
+  googleIntegration GoogleIntegration?
 
   @@map("users")
 }
@@ -34,14 +35,15 @@ model Income {
   date        DateTime
   description String
   category    String
-  value       Float
-  type        String   // fixed, variable
-  person      String   // partner1, partner2, both
+  value       Decimal  @db.Decimal(12, 2)
+  type        String
+  person      String
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, date])
   @@map("incomes")
 }
 
@@ -52,7 +54,7 @@ model Expense {
   description   String
   category      String
   subcategory   String?
-  value         Float
+  value         Decimal   @db.Decimal(12, 2)
   person        String
   paymentMethod String    @map("payment_method")
   dueDate       DateTime? @map("due_date")
@@ -60,9 +62,10 @@ model Expense {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  card          Card?     @relation(fields: [cardId], references: [id])
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card Card? @relation(fields: [cardId], references: [id])
 
+  @@index([userId, date])
   @@map("expenses")
 }
 
@@ -70,34 +73,35 @@ model Bill {
   id          String    @id @default(cuid())
   userId      String    @map("user_id")
   description String
-  value       Float
+  value       Decimal   @db.Decimal(12, 2)
   dueDate     DateTime  @map("due_date")
   category    String
   responsible String
-  status      String    @default("pending") // paid, pending, overdue
+  status      String    @default("pending")
   paid        Boolean   @default(false)
   paidAt      DateTime? @map("paid_at")
   recurrent   Boolean   @default(false)
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, dueDate])
   @@map("bills")
 }
 
 model Card {
-  id           String   @id @default(cuid())
-  userId       String   @map("user_id")
-  name         String
-  cardLimit    Float    @map("card_limit")
-  closingDay   Int      @map("closing_day")
-  dueDay       Int      @map("due_day")
-  color        String   @default("#6366f1")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  name       String
+  cardLimit  Decimal  @map("card_limit") @db.Decimal(12, 2)
+  closingDay Int      @map("closing_day")
+  dueDay     Int      @map("due_day")
+  color      String   @default("#6366f1")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   expenses     Expense[]
   installments Installment[]
 
@@ -108,14 +112,14 @@ model Installment {
   id                 String   @id @default(cuid())
   cardId             String   @map("card_id")
   description        String
-  totalValue         Float    @map("total_value")
-  installmentValue   Float    @map("installment_value")
+  totalValue         Decimal  @map("total_value") @db.Decimal(12, 2)
+  installmentValue   Decimal  @map("installment_value") @db.Decimal(12, 2)
   totalInstallments  Int      @map("total_installments")
   currentInstallment Int      @map("current_installment")
   date               DateTime
   createdAt          DateTime @default(now()) @map("created_at")
 
-  card               Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
 
   @@map("installments")
 }
@@ -123,17 +127,18 @@ model Installment {
 model Investment {
   id            String   @id @default(cuid())
   userId        String   @map("user_id")
-  type          String   // stocks, fixed_income, real_estate, crypto, savings, other
+  type          String
   description   String
-  investedValue Float    @map("invested_value")
-  currentValue  Float    @map("current_value")
-  profitability Float    @default(0)
+  investedValue Decimal  @map("invested_value") @db.Decimal(12, 2)
+  currentValue  Decimal  @map("current_value") @db.Decimal(12, 2)
+  profitability Decimal  @default(0) @db.Decimal(8, 4)
   date          DateTime
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, date])
   @@map("investments")
 }
 
@@ -142,15 +147,15 @@ model Goal {
   userId       String    @map("user_id")
   title        String
   description  String?
-  targetValue  Float     @map("target_value")
-  currentValue Float     @default(0) @map("current_value")
+  targetValue  Decimal   @map("target_value") @db.Decimal(12, 2)
+  currentValue Decimal   @default(0) @map("current_value") @db.Decimal(12, 2)
   targetDate   DateTime? @map("target_date")
   category     String
   color        String    @default("#6366f1")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("goals")
 }
@@ -161,13 +166,33 @@ model Planning {
   month         Int
   year          Int
   category      String
-  plannedValue  Float    @map("planned_value")
-  realizedValue Float    @default(0) @map("realized_value")
+  plannedValue  Decimal  @map("planned_value") @db.Decimal(12, 2)
+  realizedValue Decimal  @default(0) @map("realized_value") @db.Decimal(12, 2)
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, month, year, category])
   @@map("plannings")
+}
+
+model GoogleIntegration {
+  id             String    @id @default(cuid())
+  userId         String    @unique @map("user_id")
+  accessToken    String    @map("access_token") @db.Text
+  refreshToken   String    @map("refresh_token") @db.Text
+  expiresAt      DateTime  @map("expires_at")
+  spreadsheetId  String?   @map("spreadsheet_id")
+  spreadsheetUrl String?   @map("spreadsheet_url")
+  lastSyncAt     DateTime? @map("last_sync_at")
+  lastSyncStatus String?   @map("last_sync_status")
+  lastSyncError  String?   @map("last_sync_error") @db.Text
+  enabled        Boolean   @default(true)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("google_integrations")
 }

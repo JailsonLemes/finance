@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const prisma = require('../lib/prisma');
 const { authMiddleware } = require('../middleware/auth');
+const { createGoalSchema, contributeSchema, validate } = require('../lib/schemas');
 
 router.use(authMiddleware);
 
@@ -10,10 +11,15 @@ router.get('/', async (req, res, next) => {
       where: { userId: req.userId },
       orderBy: { createdAt: 'desc' },
     });
-    res.json(items.map(g => ({
-      ...g,
-      progressPercent: g.targetValue > 0 ? Math.min(100, Math.round((g.currentValue / g.targetValue) * 100)) : 0,
-    })));
+    res.json(
+      items.map((g) => ({
+        ...g,
+        progressPercent:
+          Number(g.targetValue) > 0
+            ? Math.min(100, Math.round((Number(g.currentValue) / Number(g.targetValue)) * 100))
+            : 0,
+      }))
+    );
   } catch (e) {
     next(e);
   }
@@ -21,20 +27,19 @@ router.get('/', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
-    const { title, description, targetValue, currentValue, targetDate, category, color } = req.body;
-    if (!title || targetValue === undefined) {
-      return res.status(400).json({ error: 'Campos obrigatórios: title, targetValue' });
-    }
+    const data = validate(req, res, createGoalSchema);
+    if (!data) return;
+
     const item = await prisma.goal.create({
       data: {
-        userId: req.userId,
-        title,
-        description,
-        targetValue: parseFloat(targetValue),
-        currentValue: parseFloat(currentValue || 0),
-        targetDate: targetDate ? new Date(targetDate) : null,
-        category,
-        color: color || '#6366f1',
+        userId:       req.userId,
+        title:        data.title,
+        description:  data.description ?? null,
+        targetValue:  data.targetValue,
+        currentValue: data.currentValue ?? 0,
+        targetDate:   data.targetDate ? new Date(data.targetDate) : null,
+        category:     data.category,
+        color:        data.color ?? '#6366f1',
       },
     });
     res.status(201).json(item);
@@ -48,17 +53,19 @@ router.put('/:id', async (req, res, next) => {
     const existing = await prisma.goal.findFirst({ where: { id: req.params.id, userId: req.userId } });
     if (!existing) return res.status(404).json({ error: 'Meta não encontrada' });
 
-    const { title, description, targetValue, currentValue, targetDate, category, color } = req.body;
+    const data = validate(req, res, createGoalSchema.partial());
+    if (!data) return;
+
     const item = await prisma.goal.update({
       where: { id: req.params.id },
       data: {
-        title,
-        description,
-        targetValue: targetValue ? parseFloat(targetValue) : undefined,
-        currentValue: currentValue !== undefined ? parseFloat(currentValue) : undefined,
-        targetDate: targetDate ? new Date(targetDate) : null,
-        category,
-        color,
+        ...(data.title        !== undefined && { title: data.title }),
+        ...(data.description  !== undefined && { description: data.description }),
+        ...(data.targetValue  !== undefined && { targetValue: data.targetValue }),
+        ...(data.currentValue !== undefined && { currentValue: data.currentValue }),
+        ...(data.targetDate   !== undefined && { targetDate: data.targetDate ? new Date(data.targetDate) : null }),
+        ...(data.category     !== undefined && { category: data.category }),
+        ...(data.color        !== undefined && { color: data.color }),
       },
     });
     res.json(item);
@@ -67,18 +74,43 @@ router.put('/:id', async (req, res, next) => {
   }
 });
 
+/**
+ * PATCH /:id/contribute
+ * Incremento atômico via $transaction — elimina race condition (lost update).
+ * Antes: read → calcular → write em duas operações separadas.
+ * Agora: leitura e escrita dentro da mesma transaction com increment atômico.
+ */
 router.patch('/:id/contribute', async (req, res, next) => {
   try {
-    const { amount } = req.body;
-    if (amount === undefined) return res.status(400).json({ error: 'Campo obrigatório: amount' });
+    const data = validate(req, res, contributeSchema);
+    if (!data) return;
 
-    const goal = await prisma.goal.findFirst({ where: { id: req.params.id, userId: req.userId } });
-    if (!goal) return res.status(404).json({ error: 'Meta não encontrada' });
+    const updated = await prisma.$transaction(async (tx) => {
+      const goal = await tx.goal.findFirst({
+        where: { id: req.params.id, userId: req.userId },
+      });
+      if (!goal) {
+        const err = new Error('Meta não encontrada');
+        err.status = 404;
+        throw err;
+      }
 
-    const updated = await prisma.goal.update({
-      where: { id: req.params.id },
-      data: { currentValue: Math.min(goal.targetValue, goal.currentValue + parseFloat(amount)) },
+      const remaining = Number(goal.targetValue) - Number(goal.currentValue);
+      if (remaining <= 0) {
+        const err = new Error('Meta já atingida');
+        err.status = 400;
+        throw err;
+      }
+
+      // Limita ao valor restante para não ultrapassar o target
+      const increment = Math.min(data.amount, remaining);
+
+      return tx.goal.update({
+        where: { id: req.params.id },
+        data:  { currentValue: { increment } },
+      });
     });
+
     res.json(updated);
   } catch (e) {
     next(e);

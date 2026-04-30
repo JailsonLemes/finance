@@ -1,17 +1,18 @@
-import { Menu, Moon, Sun, LogOut, Bell } from 'lucide-react';
+import { Menu, Moon, Sun, LogOut } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 
 const titles: Record<string, string> = {
-  '/': 'Dashboard',
-  '/receitas': 'Receitas',
-  '/despesas': 'Despesas',
-  '/contas': 'Contas a Pagar',
-  '/cartoes': 'Cartões de Crédito',
+  '/':              'Dashboard',
+  '/receitas':      'Receitas',
+  '/despesas':      'Despesas',
+  '/contas':        'Contas a Pagar',
+  '/cartoes':       'Cartões de Crédito',
   '/investimentos': 'Investimentos',
-  '/metas': 'Metas Financeiras',
-  '/planejamento': 'Planejamento',
+  '/metas':         'Metas Financeiras',
+  '/planejamento':  'Planejamento',
+  '/integracoes':   'Integrações',
 };
 
 export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
@@ -45,7 +46,9 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
           <div className="w-7 h-7 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-bold">
             {user?.name?.charAt(0).toUpperCase()}
           </div>
-          <span className="hidden md:block text-sm text-gray-700 dark:text-gray-300 font-medium">{user?.name}</span>
+          <span className="hidden md:block text-sm text-gray-700 dark:text-gray-300 font-medium">
+            {user?.name}
+          </span>
         </div>
 
         <button

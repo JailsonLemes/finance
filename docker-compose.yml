@@ -27,14 +27,18 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://fincouple:fincouple123@postgres:5432/fincouple
-      JWT_SECRET: ${JWT_SECRET}
-      FRONTEND_URL: ${FRONTEND_URL}
-      PORT: 3001
-      NODE_ENV: production
-
-    ports:
-      - '3001:3001'
+      DATABASE_URL:          postgresql://fincouple:fincouple123@postgres:5432/fincouple
+      JWT_SECRET:            ${JWT_SECRET}
+      FRONTEND_URL:          ${FRONTEND_URL}
+      PORT:                  3001
+      NODE_ENV:              production
+      GOOGLE_CLIENT_ID:      ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET:  ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI:   ${GOOGLE_REDIRECT_URI:-}
+    # Porta 3001 NÃO exposta publicamente — apenas via nginx na rede interna Docker.
+    # Para debug local, descomente:
+    # ports:
+    #   - '3001:3001'
 
   frontend:
     build:
@@ -46,8 +50,6 @@ services:
       - backend
     ports:
       - '80:80'
-    environment:
-      VITE_API_URL: http://localhost:3001
 
 volumes:
   pgdata:

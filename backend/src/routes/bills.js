@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const prisma = require('../lib/prisma');
 const { authMiddleware } = require('../middleware/auth');
+const { createBillSchema, validate } = require('../lib/schemas');
 
 router.use(authMiddleware);
 
@@ -13,49 +14,64 @@ function computeStatus(bill) {
   return due < today ? 'overdue' : 'pending';
 }
 
+/**
+ * Calcula a data de vencimento de uma conta recorrente para o mês/ano alvo,
+ * respeitando o último dia do mês (ex: dia 31 em fevereiro → dia 28/29).
+ */
+function recurringDueDate(originalDueDate, targetYear, targetMonth) {
+  const origDay = new Date(originalDueDate).getDate();
+  const lastDayOfMonth = new Date(targetYear, targetMonth, 0).getDate(); // dia 0 = último dia do mês anterior
+  const safeDay = Math.min(origDay, lastDayOfMonth);
+  return new Date(targetYear, targetMonth - 1, safeDay);
+}
+
 router.get('/', async (req, res, next) => {
   try {
     const { month, year, status } = req.query;
     const now = new Date();
-    const m = parseInt(month || now.getMonth() + 1);
-    const y = parseInt(year || now.getFullYear());
+    const m = parseInt(month || now.getMonth() + 1, 10);
+    const y = parseInt(year || now.getFullYear(), 10);
+
+    if (isNaN(m) || isNaN(y) || m < 1 || m > 12) {
+      return res.status(400).json({ error: 'month/year inválidos' });
+    }
 
     const start = new Date(y, m - 1, 1);
-    const end = new Date(y, m, 0, 23, 59, 59);
+    const end   = new Date(y, m, 0, 23, 59, 59);
 
-    // Auto-generate recurring bills for this month if they don't exist yet.
-    // Uses a transaction to avoid race condition on concurrent requests.
+    // Gera contas recorrentes do mês se ainda não existem
     await prisma.$transaction(async (tx) => {
       const count = await tx.bill.count({
         where: { userId: req.userId, dueDate: { gte: start, lte: end } },
       });
 
       if (count === 0) {
-        const recurrentTemplates = await tx.bill.findMany({
+        const templates = await tx.bill.findMany({
           where: { userId: req.userId, recurrent: true },
           orderBy: { dueDate: 'desc' },
           distinct: ['description'],
         });
 
-        if (recurrentTemplates.length > 0) {
-          const creates = recurrentTemplates.map(tpl => {
-            const origDay = new Date(tpl.dueDate).getDate();
-            const dueDate = new Date(y, m - 1, origDay);
-            return tx.bill.create({
-              data: {
-                userId: req.userId,
-                description: tpl.description,
-                value: tpl.value,
-                dueDate,
-                category: tpl.category,
-                responsible: tpl.responsible,
-                recurrent: true,
-                paid: false,
-                status: computeStatus({ paid: false, dueDate }),
-              },
-            });
-          });
-          await Promise.all(creates);
+        if (templates.length > 0) {
+          await Promise.all(
+            templates.map((tpl) => {
+              // FIX: usa recurringDueDate em vez de new Date(y, m-1, origDay)
+              const dueDate = recurringDueDate(tpl.dueDate, y, m);
+              return tx.bill.create({
+                data: {
+                  userId:      req.userId,
+                  description: tpl.description,
+                  value:       tpl.value,
+                  dueDate,
+                  category:    tpl.category,
+                  responsible: tpl.responsible,
+                  recurrent:   true,
+                  paid:        false,
+                  status:      computeStatus({ paid: false, dueDate }),
+                },
+              });
+            })
+          );
         }
       }
     });
@@ -63,9 +79,9 @@ router.get('/', async (req, res, next) => {
     const where = { userId: req.userId, dueDate: { gte: start, lte: end } };
     let items = await prisma.bill.findMany({ where, orderBy: { dueDate: 'asc' } });
 
-    // Auto-update statuses
+    // Atualiza status desatualizados automaticamente
     const updates = [];
-    items = items.map(bill => {
+    items = items.map((bill) => {
       const newStatus = computeStatus(bill);
       if (newStatus !== bill.status) {
         updates.push(prisma.bill.update({ where: { id: bill.id }, data: { status: newStatus } }));
@@ -75,13 +91,13 @@ router.get('/', async (req, res, next) => {
     });
     if (updates.length) await Promise.all(updates);
 
-    if (status) items = items.filter(b => b.status === status);
+    if (status) items = items.filter((b) => b.status === status);
 
     const totals = {
-      total: items.reduce((s, b) => s + b.value, 0),
-      paid: items.filter(b => b.status === 'paid').reduce((s, b) => s + b.value, 0),
-      pending: items.filter(b => b.status === 'pending').reduce((s, b) => s + b.value, 0),
-      overdue: items.filter(b => b.status === 'overdue').reduce((s, b) => s + b.value, 0),
+      total:   items.reduce((s, b) => s + Number(b.value), 0),
+      paid:    items.filter((b) => b.status === 'paid').reduce((s, b) => s + Number(b.value), 0),
+      pending: items.filter((b) => b.status === 'pending').reduce((s, b) => s + Number(b.value), 0),
+      overdue: items.filter((b) => b.status === 'overdue').reduce((s, b) => s + Number(b.value), 0),
     };
 
     res.json({ items, totals });
@@ -92,20 +108,20 @@ router.get('/', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
-    const { description, value, dueDate, category, responsible, recurrent } = req.body;
-    if (!description || value === undefined || !dueDate || !category) {
-      return res.status(400).json({ error: 'Campos obrigatórios: description, value, dueDate, category' });
-    }
+    const data = validate(req, res, createBillSchema);
+    if (!data) return;
+
     const bill = await prisma.bill.create({
       data: {
-        userId: req.userId,
-        description,
-        value: parseFloat(value),
-        dueDate: new Date(dueDate),
-        category,
-        responsible,
-        recurrent: !!recurrent,
-        status: 'pending',
+        userId:      req.userId,
+        description: data.description,
+        value:       data.value,
+        dueDate:     new Date(data.dueDate),
+        category:    data.category,
+        responsible: data.responsible,
+        recurrent:   data.recurrent ?? false,
+        paid:        false,
+        status:      'pending',
       },
     });
     res.status(201).json({ ...bill, status: computeStatus(bill) });
@@ -139,16 +155,18 @@ router.put('/:id', async (req, res, next) => {
     const existing = await prisma.bill.findFirst({ where: { id: req.params.id, userId: req.userId } });
     if (!existing) return res.status(404).json({ error: 'Conta não encontrada' });
 
-    const { description, value, dueDate, category, responsible, recurrent } = req.body;
+    const data = validate(req, res, createBillSchema.partial());
+    if (!data) return;
+
     const bill = await prisma.bill.update({
       where: { id: req.params.id },
       data: {
-        description,
-        value: value !== undefined ? parseFloat(value) : undefined,
-        dueDate: dueDate ? new Date(dueDate) : undefined,
-        category,
-        responsible,
-        recurrent: recurrent !== undefined ? !!recurrent : undefined,
+        ...(data.description !== undefined && { description: data.description }),
+        ...(data.value       !== undefined && { value: data.value }),
+        ...(data.dueDate     !== undefined && { dueDate: new Date(data.dueDate) }),
+        ...(data.category    !== undefined && { category: data.category }),
+        ...(data.responsible !== undefined && { responsible: data.responsible }),
+        ...(data.recurrent   !== undefined && { recurrent: data.recurrent }),
       },
     });
     res.json(bill);
