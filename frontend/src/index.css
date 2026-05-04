@@ -3,37 +3,73 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    @apply bg-gray-50 text-gray-900;
+  }
+  html.dark {
+    @apply bg-gray-950 text-gray-100;
+  }
   body {
-    @apply bg-gray-50 text-gray-900 font-sans;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
-  .dark body { @apply bg-gray-950 text-gray-100; }
 }
 
 @layer components {
   .card {
     @apply bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700;
   }
+
   .btn-primary {
-    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium px-4 py-2 rounded-xl transition-colors;
+    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium px-4 py-2 rounded-xl
+           transition-colors focus-visible:outline-none focus-visible:ring-2
+           focus-visible:ring-primary-500 focus-visible:ring-offset-2
+           dark:focus-visible:ring-offset-gray-900;
   }
+
   .btn-secondary {
-    @apply bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium px-4 py-2 rounded-xl transition-colors;
+    @apply bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600
+           text-gray-700 dark:text-gray-200 font-medium px-4 py-2 rounded-xl
+           transition-colors focus-visible:outline-none focus-visible:ring-2
+           focus-visible:ring-gray-400 focus-visible:ring-offset-2
+           dark:focus-visible:ring-offset-gray-900;
   }
+
   .input {
-    @apply w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all;
+    @apply w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700
+           rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500
+           focus:border-transparent transition-all
+           aria-[invalid=true]:border-red-500 aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-red-500;
   }
+
   .label {
     @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
   }
+
   .table-row {
     @apply border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors;
   }
-  .badge-paid { @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400; }
+
+  /* Badge base — inclui shape e tamanho; combine com badge-paid/pending/overdue para cor */
+  .badge {
+    @apply inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full;
+  }
+  .badge-paid    { @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400; }
   .badge-pending { @apply bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400; }
   .badge-overdue { @apply bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400; }
 }
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { @apply bg-transparent; }
-::-webkit-scrollbar-thumb { @apply bg-gray-300 dark:bg-gray-600 rounded-full; }
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+/* Webkit (Chrome, Safari, Edge) */
+::-webkit-scrollbar           { width: 6px; height: 6px; }
+::-webkit-scrollbar-track     { background: transparent; }
+::-webkit-scrollbar-thumb     { @apply bg-gray-300 dark:bg-gray-600 rounded-full; }
+
+/* Firefox */
+*                             { scrollbar-width: thin; scrollbar-color: theme('colors.gray.300') transparent; }
+.dark *                       { scrollbar-color: theme('colors.gray.600') transparent; }
+
+/* ── Motion ──────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after      { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  .modal-backdrop             { backdrop-filter: none !important; }
+}

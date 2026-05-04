@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, CheckCircle2, Circle, Download } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { format } from 'date-fns';
-import * as XLSX from 'xlsx';
 import api from '../services/api';
 import Modal from '../components/Modal';
 import MonthPicker from '../components/MonthPicker';
@@ -32,8 +31,8 @@ function billStatus(bill: Pick<Bill, 'paid' | 'dueDate'>): Bill['status'] {
 
 function calcTotals(list: Bill[]) {
   return {
-    total: list.reduce((s, b) => s + b.value, 0),
-    paid: list.filter(b => b.status === 'paid').reduce((s, b) => s + b.value, 0),
+    total:   list.reduce((s, b) => s + b.value, 0),
+    paid:    list.filter(b => b.status === 'paid').reduce((s, b) => s + b.value, 0),
     pending: list.filter(b => b.status === 'pending').reduce((s, b) => s + b.value, 0),
     overdue: list.filter(b => b.status === 'overdue').reduce((s, b) => s + b.value, 0),
   };
@@ -41,12 +40,13 @@ function calcTotals(list: Bill[]) {
 
 export default function BillsPage() {
   const { user } = useAuth();
-  const [items, setItems] = useState<Bill[]>([]);
-  const [date, setDate] = useState(new Date());
-  const [filter, setFilter] = useState<string>('all');
-  const [modal, setModal] = useState(false);
-  const [editing, setEditing] = useState<Bill | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [items, setItems]           = useState<Bill[]>([]);
+  const [date, setDate]             = useState(new Date());
+  const [filter, setFilter]         = useState<string>('all');
+  const [modal, setModal]           = useState(false);
+  const [editing, setEditing]       = useState<Bill | null>(null);
+  const [loading, setLoading]       = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Bill | null>(null);
   const { register, handleSubmit, reset } = useForm<FormData>();
 
   const totals = calcTotals(items);
@@ -61,14 +61,12 @@ export default function BillsPage() {
   useEffect(() => { load(date); }, [date]);
 
   const toggle = async (id: string) => {
-    // Optimistic update: inverte o estado imediatamente na tela
     setItems(prev => prev.map(b => {
       if (b.id !== id) return b;
       const paid = !b.paid;
       const status = billStatus({ paid, dueDate: b.dueDate });
       return { ...b, paid, status, paidAt: paid ? new Date().toISOString() : undefined };
     }));
-    // Sincroniza com o servidor
     try {
       await api.patch(`/bills/${id}/toggle`);
     } finally {
@@ -86,11 +84,11 @@ export default function BillsPage() {
     setEditing(item);
     reset({
       description: item.description,
-      value: String(item.value),
-      dueDate: format(new Date(item.dueDate), 'yyyy-MM-dd'),
-      category: item.category,
+      value:       String(item.value),
+      dueDate:     format(new Date(item.dueDate), 'yyyy-MM-dd'),
+      category:    item.category,
       responsible: item.responsible,
-      recurrent: item.recurrent,
+      recurrent:   item.recurrent,
     });
     setModal(true);
   };
@@ -108,21 +106,22 @@ export default function BillsPage() {
     } finally { setLoading(false); }
   };
 
-  const remove = async (id: string) => {
-    if (!confirm('Remover conta?')) return;
-    await api.delete(`/bills/${id}`);
+  const doDelete = async (bill: Bill) => {
+    setDeleteTarget(null);
+    await api.delete(`/bills/${bill.id}`);
     load(date);
   };
 
-  const exportXLSX = () => {
+  const exportXLSX = async () => {
+    const XLSX = await import('xlsx');
     const ws = XLSX.utils.json_to_sheet(filtered.map(b => ({
-      Descrição: b.description,
-      Valor: b.value,
-      Vencimento: format(new Date(b.dueDate), 'dd/MM/yyyy'),
-      Categoria: b.category,
+      Descrição:   b.description,
+      Valor:       b.value,
+      Vencimento:  format(new Date(b.dueDate), 'dd/MM/yyyy'),
+      Categoria:   b.category,
       Responsável: b.responsible,
-      Status: statusLabel[b.status],
-      'Pago Em': b.paidAt ? format(new Date(b.paidAt), 'dd/MM/yyyy') : '',
+      Status:      statusLabel[b.status],
+      'Pago Em':   b.paidAt ? format(new Date(b.paidAt), 'dd/MM/yyyy') : '',
     })));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Contas');
@@ -148,18 +147,18 @@ export default function BillsPage() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { key: 'all', label: 'Total', value: totals.total, textColor: 'text-gray-700 dark:text-gray-300' },
-          { key: 'paid', label: 'Pagas', value: totals.paid, textColor: 'text-emerald-700 dark:text-emerald-400' },
-          { key: 'pending', label: 'Pendentes', value: totals.pending, textColor: 'text-amber-700 dark:text-amber-400' },
-          { key: 'overdue', label: 'Atrasadas', value: totals.overdue, textColor: 'text-red-700 dark:text-red-400' },
+          { key: 'all',     label: 'Total',      value: totals.total,   textColor: 'text-gray-700 dark:text-gray-300' },
+          { key: 'paid',    label: 'Pagas',      value: totals.paid,    textColor: 'text-emerald-700 dark:text-emerald-400' },
+          { key: 'pending', label: 'Pendentes',  value: totals.pending, textColor: 'text-amber-700 dark:text-amber-400' },
+          { key: 'overdue', label: 'Atrasadas',  value: totals.overdue, textColor: 'text-red-700 dark:text-red-400' },
         ].map(({ key, label, value, textColor }) => (
           <button
             key={key}
             onClick={() => setFilter(key)}
-            className={`card p-4 text-left transition-all ${filter === key ? 'ring-2 ring-primary-500' : ''}`}
+            className={`card p-4 text-left transition-all hover:shadow-md ${filter === key ? 'ring-2 ring-primary-500' : ''}`}
           >
             <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
-            <p className={`text-lg font-bold mt-1 ${textColor}`}>{fmt(value)}</p>
+            <p className={`text-lg font-bold mt-1 truncate ${textColor}`}>{fmt(value)}</p>
           </button>
         ))}
       </div>
@@ -185,7 +184,11 @@ export default function BillsPage() {
               ) : filtered.map(bill => (
                 <tr key={bill.id} className={`table-row ${bill.status === 'paid' ? 'opacity-70' : ''}`}>
                   <td className="px-4 py-3">
-                    <button onClick={() => toggle(bill.id)} className="transition-colors">
+                    <button
+                      onClick={() => toggle(bill.id)}
+                      aria-label={bill.paid ? 'Marcar como pendente' : 'Marcar como pago'}
+                      className="transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
+                    >
                       {bill.paid
                         ? <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                         : <Circle className={`w-5 h-5 ${bill.status === 'overdue' ? 'text-red-400' : 'text-gray-300 dark:text-gray-600'}`} />
@@ -193,21 +196,28 @@ export default function BillsPage() {
                     </button>
                   </td>
                   <td className="px-4 py-3">
-                    <p className={`text-sm font-medium ${bill.paid ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>{bill.description}</p>
+                    <p className={`text-sm font-medium ${bill.paid ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>
+                      {bill.description}
+                    </p>
                     {bill.recurrent && <span className="text-xs text-gray-400">Recorrente</span>}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 hidden md:table-cell">
                     {format(new Date(bill.dueDate), 'dd/MM/yyyy')}
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
-                    <span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-lg text-xs text-gray-600 dark:text-gray-400">{bill.category}</span>
+                    <span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-lg text-xs text-gray-600 dark:text-gray-400">
+                      {bill.category}
+                    </span>
                   </td>
                   <td className="px-4 py-3 hidden sm:table-cell">
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusBadge(bill.status)}`}>
+                    <span className={`badge ${statusBadge(bill.status)}`}>
                       {statusLabel[bill.status]}
                     </span>
                   </td>
-                  <td className={`px-4 py-3 text-right text-sm font-semibold ${bill.status === 'overdue' ? 'text-red-600 dark:text-red-400' : bill.status === 'paid' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                  <td className={`px-4 py-3 text-right text-sm font-semibold
+                    ${bill.status === 'overdue' ? 'text-red-600 dark:text-red-400' :
+                      bill.status === 'paid'    ? 'text-emerald-600 dark:text-emerald-400' :
+                                                  'text-amber-600 dark:text-amber-400'}`}>
                     {fmt(bill.value)}
                   </td>
                   <td className="px-4 py-3">
@@ -215,7 +225,7 @@ export default function BillsPage() {
                       <button onClick={() => openEdit(bill)} className="p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors">
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => remove(bill.id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                      <button onClick={() => setDeleteTarget(bill)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -227,6 +237,7 @@ export default function BillsPage() {
         </div>
       </div>
 
+      {/* Modal: cadastro/edição */}
       <Modal open={modal} onClose={() => setModal(false)} title={editing ? 'Editar Conta' : 'Nova Conta'}>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
@@ -272,6 +283,26 @@ export default function BillsPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Modal: confirmação de exclusão */}
+      {deleteTarget && (
+        <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Remover conta">
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Confirma a remoção de <strong>{deleteTarget.description}</strong>?
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteTarget(null)} className="btn-secondary flex-1">Cancelar</button>
+              <button
+                onClick={() => doDelete(deleteTarget)}
+                className="flex-1 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+              >
+                Remover
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

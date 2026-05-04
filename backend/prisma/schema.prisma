@@ -57,9 +57,12 @@ model Expense {
   value         Decimal   @db.Decimal(12, 2)
   person        String
   paymentMethod String    @map("payment_method")
-  dueDate       DateTime? @map("due_date")
-  cardId        String?   @map("card_id")
-  createdAt     DateTime  @default(now()) @map("created_at")
+  dueDate            DateTime? @map("due_date")
+  cardId             String?   @map("card_id")
+  installmentCurrent   Int?      @map("installment_current")
+  installmentTotal     Int?      @map("installment_total")
+  installmentGroupId   String?   @map("installment_group_id")
+  createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
   user User  @relation(fields: [userId], references: [id], onDelete: Cascade)

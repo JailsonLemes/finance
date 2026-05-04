@@ -28,6 +28,9 @@ export interface Expense {
   dueDate?: string;
   cardId?: string;
   card?: { name: string; color: string };
+  installmentCurrent?: number | null;
+  installmentTotal?: number | null;
+  installmentGroupId?: string | null;
 }
 
 export interface Bill {

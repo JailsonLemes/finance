@@ -121,10 +121,10 @@ export default function Login() {
                 <label className="label">Senha</label>
                 <div className="relative">
                   <input
-                    {...registerForm.register('password', { required: true, minLength: 6 })}
+                    {...registerForm.register('password', { required: true, minLength: 8 })}
                     type={showPass ? 'text' : 'password'}
                     className="input pr-10"
-                    placeholder="Mínimo 6 caracteres"
+                    placeholder="Mínimo 8 caracteres"
                   />
                   <button type="button" onClick={() => setShowPass(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
                     {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

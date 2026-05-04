@@ -19,17 +19,27 @@ const createIncomeSchema = z.object({
   person:      z.string().min(1, 'Obrigatório').max(100),
 });
 
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+const registerSchema = z.object({
+  email:       z.string().email('Email inválido').max(200),
+  password:    z.string().min(8, 'Senha deve ter ao menos 8 caracteres').max(100),
+  name:        z.string().min(1, 'Obrigatório').max(100),
+  partnerName: z.string().max(100).optional().nullable(),
+});
+
 // ─── Despesas ─────────────────────────────────────────────────────────────────
 const createExpenseSchema = z.object({
-  date:          dateString,
-  description:   z.string().min(1, 'Obrigatório').max(200),
-  category:      z.string().min(1, 'Obrigatório').max(100),
-  subcategory:   z.string().max(100).optional().nullable(),
-  value:         positiveDecimal,
-  person:        z.string().min(1, 'Obrigatório').max(100),
-  paymentMethod: z.string().min(1, 'Obrigatório').max(100),
-  dueDate:       dateString.optional().nullable(),
-  cardId:        z.string().optional().nullable(),
+  date:               dateString,
+  description:        z.string().min(1, 'Obrigatório').max(200),
+  category:           z.string().min(1, 'Obrigatório').max(100),
+  subcategory:        z.string().max(100).optional().nullable(),
+  value:              positiveDecimal,
+  person:             z.string().min(1, 'Obrigatório').max(100),
+  paymentMethod:      z.string().min(1, 'Obrigatório').max(100),
+  dueDate:            dateString.optional().nullable(),
+  cardId:             z.string().optional().nullable(),
+  installmentTotal:   z.coerce.number().int().min(1).max(360).optional().nullable(),
+  installmentCurrent: z.coerce.number().int().min(1).optional().nullable(),
 });
 
 // ─── Contas ───────────────────────────────────────────────────────────────────
@@ -106,6 +116,7 @@ function validate(req, res, schema) {
 }
 
 module.exports = {
+  registerSchema,
   createIncomeSchema,
   createExpenseSchema,
   createBillSchema,

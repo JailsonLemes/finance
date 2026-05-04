@@ -3,13 +3,15 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
 const { authMiddleware } = require('../middleware/auth');
+const { registerSchema, validate } = require('../lib/schemas');
 
 router.post('/register', async (req, res, next) => {
   try {
-    const { email, password, name, partnerName } = req.body;
-    if (!email || !password || !name) {
-      return res.status(400).json({ error: 'Email, senha e nome são obrigatórios' });
-    }
+    const body = validate(req, res, registerSchema);
+    if (!body) return;
+
+    const { email, password, name, partnerName } = body;
+
     const exists = await prisma.user.findUnique({ where: { email } });
     if (exists) return res.status(409).json({ error: 'Email já cadastrado' });
 
@@ -51,6 +53,7 @@ router.get('/me', authMiddleware, async (req, res, next) => {
       where: { id: req.userId },
       select: { id: true, email: true, name: true, partnerName: true, darkMode: true },
     });
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
     res.json(user);
   } catch (e) {
     next(e);
@@ -66,6 +69,9 @@ router.put('/me', authMiddleware, async (req, res, next) => {
     if (darkMode !== undefined) data.darkMode = darkMode;
 
     if (newPassword) {
+      if (newPassword.length < 8) {
+        return res.status(400).json({ error: 'Nova senha deve ter ao menos 8 caracteres' });
+      }
       const user = await prisma.user.findUnique({ where: { id: req.userId } });
       const valid = await bcrypt.compare(currentPassword, user.password);
       if (!valid) return res.status(400).json({ error: 'Senha atual incorreta' });

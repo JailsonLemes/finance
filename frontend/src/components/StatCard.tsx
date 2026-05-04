@@ -31,7 +31,7 @@ export default function StatCard({ title, value, icon: Icon, color, subtitle, tr
           </span>
         )}
       </div>
-      <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
+      <p className="text-2xl font-bold text-gray-900 dark:text-white truncate leading-tight">{value}</p>
       <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mt-0.5">{title}</p>
       {subtitle && <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{subtitle}</p>}
     </div>

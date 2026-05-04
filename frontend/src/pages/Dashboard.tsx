@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   TrendingUp, TrendingDown, Wallet, Clock, AlertTriangle,
-  Activity, Target, BarChart3,
+  Target, BarChart3, RefreshCw,
 } from 'lucide-react';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
@@ -12,21 +12,24 @@ import StatCard from '../components/StatCard';
 import MonthPicker from '../components/MonthPicker';
 import { DashboardData } from '../types';
 import { fmt } from '../utils/fmt';
-
-const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6'];
+import { CHART_COLORS } from '../utils/colors';
 
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [date, setDate] = useState(new Date());
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const load = async (d: Date) => {
     try {
       setLoading(true);
+      setError(null);
       const res = await api.get('/dashboard', {
         params: { month: d.getMonth() + 1, year: d.getFullYear() },
       });
       setData(res.data);
+    } catch {
+      setError('Erro ao carregar dados. Verifique sua conexão e tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -35,7 +38,9 @@ export default function Dashboard() {
   useEffect(() => { load(date); }, [date]);
 
   const pieData = data
-    ? Object.entries(data.expensesByCategory).map(([name, value]) => ({ name, value }))
+    ? Object.entries(data.expensesByCategory)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
     : [];
 
   const healthColor =
@@ -47,6 +52,12 @@ export default function Dashboard() {
     !data ? '' :
     data.healthScore >= 70 ? 'Ótima' :
     data.healthScore >= 40 ? 'Regular' : 'Atenção';
+
+  const yAxisFormatter = (v: number) => {
+    if (v >= 1_000_000) return `R$${(v / 1_000_000).toFixed(1)}M`;
+    if (v >= 1_000)     return `R$${(v / 1_000).toFixed(0)}k`;
+    return `R$${v}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -62,6 +73,17 @@ export default function Dashboard() {
       {loading ? (
         <div className="flex justify-center py-20">
           <div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : error ? (
+        <div className="card p-10 flex flex-col items-center gap-4 text-center">
+          <AlertTriangle className="w-10 h-10 text-red-500" />
+          <p className="text-gray-600 dark:text-gray-400">{error}</p>
+          <button
+            onClick={() => load(date)}
+            className="btn-secondary flex items-center gap-2 text-sm"
+          >
+            <RefreshCw className="w-4 h-4" /> Tentar novamente
+          </button>
         </div>
       ) : data && (
         <>
@@ -89,7 +111,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Stats grid */}
+          {/* Stats grid — row 1 */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
               title="Saldo do Mês"
@@ -118,7 +140,8 @@ export default function Dashboard() {
             />
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Stats grid — row 2 */}
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
             <StatCard
               title="Total Investido"
               value={fmt(data.totalInvested)}
@@ -130,12 +153,6 @@ export default function Dashboard() {
               value={`${data.goalsProgress}%`}
               icon={Target}
               color="purple"
-            />
-            <StatCard
-              title="Contas Pagas"
-              value={fmt(data.totalPaid)}
-              icon={Activity}
-              color="blue"
             />
             <StatCard
               title="Contas Atrasadas"
@@ -154,7 +171,7 @@ export default function Dashboard() {
                 <ResponsiveContainer width="100%" height={260}>
                   <PieChart>
                     <Pie data={pieData} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
-                      {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                      {pieData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                     </Pie>
                     <Tooltip formatter={(v: number) => fmt(v)} />
                   </PieChart>
@@ -173,7 +190,7 @@ export default function Dashboard() {
                 <LineChart data={data.monthlyEvolution}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `R$${(v / 1000).toFixed(0)}k`} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={yAxisFormatter} />
                   <Tooltip formatter={(v: number) => fmt(v)} />
                   <Legend />
                   <Line type="monotone" dataKey="income" name="Receitas" stroke="#10b981" strokeWidth={2} dot={false} />

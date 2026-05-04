@@ -25,12 +25,13 @@ export default function Sidebar({ open, onClose }: Props) {
 
   return (
     <>
-      {open && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={onClose}
-        />
-      )}
+      {/* Backdrop — always rendered, fades in/out to match sidebar transition */}
+      <div
+        aria-hidden="true"
+        className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-200
+          ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        onClick={onClose}
+      />
 
       <aside className={`
         fixed lg:static inset-y-0 left-0 z-50 lg:z-auto
@@ -46,7 +47,12 @@ export default function Sidebar({ open, onClose }: Props) {
             </div>
             <span className="font-bold text-lg text-gray-900 dark:text-white">FinCouple</span>
           </div>
-          <button onClick={onClose} className="lg:hidden text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+          <button
+            onClick={onClose}
+            aria-label="Fechar menu"
+            className="lg:hidden text-gray-400 hover:text-gray-600 dark:hover:text-gray-300
+                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-lg"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -54,7 +60,7 @@ export default function Sidebar({ open, onClose }: Props) {
         {/* User info */}
         <div className="mx-4 mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
           <p className="text-xs text-gray-500 dark:text-gray-400">Casal</p>
-          <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+          <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
             {user?.name}{user?.partnerName ? ` & ${user.partnerName}` : ''}
           </p>
         </div>
@@ -67,13 +73,14 @@ export default function Sidebar({ open, onClose }: Props) {
               to={to}
               end={exact}
               onClick={onClose}
-              className={({ isActive }) => `
-                flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all
-                ${isActive
-                  ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
-                }
-              `}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all
+                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
+                 ${isActive
+                   ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
+                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
+                 }`
+              }
             >
               <Icon className="w-4 h-4 flex-shrink-0" />
               <span className="flex-1">{label}</span>
