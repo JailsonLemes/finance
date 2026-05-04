@@ -11,13 +11,13 @@ router.get('/', async (req, res, next) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    const totalInvested = items.reduce((s, i) => s + i.investedValue, 0);
-    const totalCurrent = items.reduce((s, i) => s + i.currentValue, 0);
+    const totalInvested = items.reduce((s, i) => s + parseFloat(i.investedValue), 0);
+    const totalCurrent = items.reduce((s, i) => s + parseFloat(i.currentValue), 0);
     const totalReturn = totalCurrent - totalInvested;
     const returnPercent = totalInvested > 0 ? ((totalReturn / totalInvested) * 100).toFixed(2) : 0;
 
     const byType = items.reduce((acc, i) => {
-      acc[i.type] = (acc[i.type] || 0) + i.currentValue;
+      acc[i.type] = (acc[i.type] || 0) + parseFloat(i.currentValue);
       return acc;
     }, {});
 

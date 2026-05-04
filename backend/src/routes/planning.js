@@ -46,8 +46,8 @@ router.get('/', async (req, res, next) => {
         : 0,
     }));
 
-    const totalPlanned = result.reduce((s, p) => s + p.plannedValue, 0);
-    const totalRealized = result.reduce((s, p) => s + p.realizedValue, 0);
+    const totalPlanned = result.reduce((s, p) => s + parseFloat(p.plannedValue), 0);
+    const totalRealized = result.reduce((s, p) => s + parseFloat(p.realizedValue), 0);
 
     res.json({ items: result, totalPlanned, totalRealized });
   } catch (e) {

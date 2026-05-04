@@ -32,15 +32,15 @@ router.get('/', authMiddleware, async (req, res, next) => {
       prisma.bill.count({ where: { userId, paid: false, dueDate: { lt: now } } }),
     ]);
 
-    const totalIncome = incomes.reduce((s, i) => s + i.value, 0);
-    const totalExpenses = expenses.reduce((s, e) => s + e.value, 0);
+    const totalIncome = incomes.reduce((s, i) => s + parseFloat(i.value), 0);
+    const totalExpenses = expenses.reduce((s, e) => s + parseFloat(e.value), 0);
     const balance = totalIncome - totalExpenses;
 
-    const totalPaid = bills.filter(b => b.paid).reduce((s, b) => s + b.value, 0);
-    const totalPending = bills.filter(b => !b.paid).reduce((s, b) => s + b.value, 0);
+    const totalPaid = bills.filter(b => b.paid).reduce((s, b) => s + parseFloat(b.value), 0);
+    const totalPending = bills.filter(b => !b.paid).reduce((s, b) => s + parseFloat(b.value), 0);
 
     const expensesByCategory = expenses.reduce((acc, e) => {
-      acc[e.category] = (acc[e.category] || 0) + e.value;
+      acc[e.category] = (acc[e.category] || 0) + parseFloat(e.value);
       return acc;
     }, {});
 
@@ -51,10 +51,10 @@ router.get('/', authMiddleware, async (req, res, next) => {
       const me = endOfMonth(d);
       const income = allHistInc
         .filter(r => new Date(r.date) >= ms && new Date(r.date) <= me)
-        .reduce((s, r) => s + r.value, 0);
+        .reduce((s, r) => s + parseFloat(r.value), 0);
       const exp = allHistExp
         .filter(r => new Date(r.date) >= ms && new Date(r.date) <= me)
-        .reduce((s, r) => s + r.value, 0);
+        .reduce((s, r) => s + parseFloat(r.value), 0);
       return { month: format(d, 'MMM/yy'), income, expenses: exp };
     });
 
@@ -63,10 +63,10 @@ router.get('/', authMiddleware, async (req, res, next) => {
       ? Math.max(0, Math.min(100, Math.round(((totalIncome - totalExpenses) / totalIncome) * 100)))
       : 0;
 
-    const totalInvested = investments.reduce((s, i) => s + i.currentValue, 0);
-    const totalGoals = goals.reduce((s, g) => s + g.targetValue, 0);
+    const totalInvested = investments.reduce((s, i) => s + parseFloat(i.currentValue), 0);
+    const totalGoals = goals.reduce((s, g) => s + parseFloat(g.targetValue), 0);
     const goalsProgress = totalGoals > 0
-      ? Math.round((goals.reduce((s, g) => s + g.currentValue, 0) / totalGoals) * 100)
+      ? Math.round((goals.reduce((s, g) => s + parseFloat(g.currentValue), 0) / totalGoals) * 100)
       : 0;
 
     res.json({

@@ -47,8 +47,8 @@ app.use(cors({
 
 app.use(express.json());
 
-// Rate limit global
-const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 });
+// Rate limit global — valor alto para suportar importações em lote
+const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 2000 });
 app.use(limiter);
 
 // Rate limit específico para auth

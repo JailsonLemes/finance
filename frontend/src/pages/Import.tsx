@@ -64,9 +64,10 @@ function parseSpreadsheet(wb: XLSX.WorkBook): ParsedRecord[] {
   const records: ParsedRecord[] = [];
   let currentType: 'income' | 'expense' | 'investment' | null = null;
   let currentCategory = '';
+  let done = false;
 
   for (const row of rows) {
-    if (!row || !row.some(v => v !== null)) continue;
+    if (done || !row || !row.some(v => v !== null)) continue;
 
     const col0 = row[0];
     const col1 = row[1];
@@ -87,6 +88,14 @@ function parseSpreadsheet(wb: XLSX.WorkBook): ParsedRecord[] {
     // Linha de item: col0 nula, col1 com descrição
     if (currentType && col0 === null && col1 && typeof col1 === 'string' && col1.trim()) {
       const desc = col1.trim();
+
+      // Detecta linha de resumo/totais: células dos meses contêm strings (nomes dos meses)
+      // ou a descrição é um total consolidado — para de processar
+      const hasStringInMonthCols = MONTH_COLS.some(i => typeof row[i] === 'string');
+      if (hasStringInMonthCols || desc.toUpperCase() === 'TOTAIS' || desc.toUpperCase().startsWith('RESUMO')) {
+        done = true;
+        continue;
+      }
 
       MONTH_COLS.forEach((colIdx, monthIdx) => {
         const rawValue = row[colIdx];

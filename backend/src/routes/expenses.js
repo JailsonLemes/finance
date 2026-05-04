@@ -24,9 +24,9 @@ router.get('/', async (req, res, next) => {
       include: { card: { select: { name: true, color: true } } },
     });
 
-    const total = items.reduce((s, e) => s + e.value, 0);
+    const total = items.reduce((s, e) => s + parseFloat(e.value), 0);
     const byCategory = items.reduce((acc, e) => {
-      acc[e.category] = (acc[e.category] || 0) + e.value;
+      acc[e.category] = (acc[e.category] || 0) + parseFloat(e.value);
       return acc;
     }, {});
 

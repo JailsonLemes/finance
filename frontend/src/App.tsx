@@ -13,6 +13,7 @@ import InvestmentsPage             from './pages/Investments';
 import GoalsPage                   from './pages/Goals';
 import PlanningPage                from './pages/Planning';
 import IntegrationsPage            from './pages/Integrations';
+import ImportPage                  from './pages/Import';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -41,6 +42,7 @@ function AppRoutes() {
         <Route path="metas"            element={<GoalsPage />} />
         <Route path="planejamento"     element={<PlanningPage />} />
         <Route path="integracoes"      element={<IntegrationsPage />} />
+        <Route path="importar"         element={<ImportPage />} />
       </Route>
     </Routes>
   );

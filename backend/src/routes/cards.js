@@ -34,8 +34,8 @@ router.get('/', async (req, res, next) => {
       });
 
       const invoiceTotal =
-        currentExpenses.reduce((s, e) => s + e.value, 0) +
-        currentInstallments.reduce((s, i) => s + i.installmentValue, 0);
+        currentExpenses.reduce((s, e) => s + parseFloat(e.value), 0) +
+        currentInstallments.reduce((s, i) => s + parseFloat(i.installmentValue), 0);
 
       return {
         ...card,

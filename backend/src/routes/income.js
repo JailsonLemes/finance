@@ -18,7 +18,7 @@ router.get('/', async (req, res, next) => {
     if (person) where.person = person;
 
     const items = await prisma.income.findMany({ where, orderBy: { date: 'desc' } });
-    const total = items.reduce((s, i) => s + i.value, 0);
+    const total = items.reduce((s, i) => s + parseFloat(i.value), 0);
     res.json({ items, total });
   } catch (e) {
     next(e);
