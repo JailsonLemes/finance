@@ -71,6 +71,19 @@ router.put('/:id', async (req, res, next) => {
   }
 });
 
+router.delete('/by-month', async (req, res, next) => {
+  try {
+    const { month, year } = req.query;
+    if (!month || !year) return res.status(400).json({ error: 'month e year são obrigatórios' });
+    const start = new Date(year, month - 1, 1);
+    const end   = new Date(year, month, 0, 23, 59, 59);
+    const { count } = await prisma.income.deleteMany({
+      where: { userId: req.userId, date: { gte: start, lte: end } },
+    });
+    res.json({ deleted: count });
+  } catch (e) { next(e); }
+});
+
 router.delete('/:id', async (req, res, next) => {
   try {
     await prisma.income.deleteMany({ where: { id: req.params.id, userId: req.userId } });

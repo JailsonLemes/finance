@@ -1,18 +1,19 @@
 services:
-  postgres:
-    image: postgres:16-alpine
+  mariadb:
+    image: mariadb:11
     container_name: fincouple_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: fincouple
-      POSTGRES_PASSWORD: fincouple123
-      POSTGRES_DB: fincouple
+      MARIADB_USER: fincouple
+      MARIADB_PASSWORD: fincouple123
+      MARIADB_DATABASE: fincouple
+      MARIADB_ROOT_PASSWORD: root123
     ports:
-      - '5432:5432'
+      - '3306:3306'
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - mariadb_data:/var/lib/mysql
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U fincouple']
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -24,10 +25,10 @@ services:
     container_name: fincouple_api
     restart: unless-stopped
     depends_on:
-      postgres:
+      mariadb:
         condition: service_healthy
     environment:
-      DATABASE_URL:          postgresql://fincouple:fincouple123@postgres:5432/fincouple
+      DATABASE_URL:          mysql://fincouple:fincouple123@mariadb:3306/fincouple
       JWT_SECRET:            ${JWT_SECRET}
       FRONTEND_URL:          ${FRONTEND_URL}
       PORT:                  3001
@@ -52,4 +53,4 @@ services:
       - '80:80'
 
 volumes:
-  pgdata:
+  mariadb_data:
