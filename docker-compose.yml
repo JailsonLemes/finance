@@ -8,6 +8,7 @@ services:
       MARIADB_PASSWORD: fincouple123
       MARIADB_DATABASE: fincouple
       MARIADB_ROOT_PASSWORD: root123
+      TZ: America/Sao_Paulo
     ports:
       - '3306:3306'
     volumes:
@@ -28,14 +29,17 @@ services:
       mariadb:
         condition: service_healthy
     environment:
-      DATABASE_URL:          mysql://fincouple:fincouple123@mariadb:3306/fincouple
-      JWT_SECRET:            ${JWT_SECRET}
-      FRONTEND_URL:          ${FRONTEND_URL}
-      PORT:                  3001
-      NODE_ENV:              production
-      GOOGLE_CLIENT_ID:      ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET:  ${GOOGLE_CLIENT_SECRET:-}
-      GOOGLE_REDIRECT_URI:   ${GOOGLE_REDIRECT_URI:-}
+      DATABASE_URL:           mysql://fincouple:fincouple123@mariadb:3306/fincouple
+      JWT_SECRET:             ${JWT_SECRET}
+      FRONTEND_URL:           ${FRONTEND_URL}
+      PORT:                   3001
+      NODE_ENV:               production
+      GOOGLE_CLIENT_ID:       ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET:   ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI:    ${GOOGLE_REDIRECT_URI:-}
+      RCLONE_REMOTE:          ${RCLONE_REMOTE:-gdrive}
+      RCLONE_BACKUP_FOLDER:   ${RCLONE_BACKUP_FOLDER:-fincouple-backups}
+      RCLONE_TOKEN:           ${RCLONE_TOKEN:-}
     # Porta 3001 NÃO exposta publicamente — apenas via nginx na rede interna Docker.
     # Para debug local, descomente:
     # ports:

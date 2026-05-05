@@ -14,6 +14,7 @@ import GoalsPage                   from './pages/Goals';
 import PlanningPage                from './pages/Planning';
 import IntegrationsPage            from './pages/Integrations';
 import ImportPage                  from './pages/Import';
+import BackupPage                  from './pages/Backup';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -43,6 +44,7 @@ function AppRoutes() {
         <Route path="planejamento"     element={<PlanningPage />} />
         <Route path="integracoes"      element={<IntegrationsPage />} />
         <Route path="importar"         element={<ImportPage />} />
+        <Route path="backup"           element={<BackupPage />} />
       </Route>
     </Routes>
   );

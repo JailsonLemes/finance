@@ -33,6 +33,7 @@ const investmentRoutes  = require('./routes/investments');
 const goalRoutes        = require('./routes/goals');
 const planningRoutes    = require('./routes/planning');
 const integrationRoutes = require('./routes/integrations');
+const backupRoutes      = require('./routes/backup');
 const { errorHandler }  = require('./middleware/errorHandler');
 
 const app  = express();
@@ -79,6 +80,7 @@ app.use('/api/investments',  investmentRoutes);
 app.use('/api/goals',        goalRoutes);
 app.use('/api/planning',     planningRoutes);
 app.use('/api/integrations', integrationRoutes);
+app.use('/api/backup',      backupRoutes);
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 

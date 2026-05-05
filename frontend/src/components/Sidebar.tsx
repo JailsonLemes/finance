@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, TrendingUp, TrendingDown, FileText,
-  CreditCard, BarChart3, Target, PieChart, X, Heart, Zap, Upload,
+  CreditCard, BarChart3, Target, PieChart, X, Heart, Zap, Upload, HardDrive,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -16,6 +16,7 @@ const nav = [
   { to: '/planejamento',  label: 'Planejamento',    icon: PieChart },
   { to: '/integracoes',   label: 'Integrações',     icon: Zap, badge: 'NEW' },
   { to: '/importar',      label: 'Importar XLSX',   icon: Upload },
+  { to: '/backup',        label: 'Backup',           icon: HardDrive },
 ];
 
 interface Props { open: boolean; onClose: () => void; }

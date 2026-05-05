@@ -1,6 +1,6 @@
 FROM node:20-alpine
 
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl mariadb-client rclone tzdata
 
 WORKDIR /app
 
@@ -12,7 +12,8 @@ RUN npx prisma generate
 
 COPY . .
 
+RUN chmod +x entrypoint.sh
+
 EXPOSE 3001
 
-# migrate deploy aplica apenas migrações já commitadas — sem risco de perda de dados
-CMD ["sh", "-c", "npx prisma migrate deploy && node src/index.js"]
+CMD ["sh", "entrypoint.sh"]
