@@ -110,8 +110,11 @@ export interface DashboardData {
   totalExpenses: number;
   totalPaid: number;
   totalPending: number;
+  balanceReal: number;
+  balancePrevisto: number;
   expensesByCategory: Record<string, number>;
-  monthlyEvolution: { month: string; income: number; expenses: number }[];
+  monthlyEvolution: { month: string; income: number; expenses: number; billsPaid: number }[];
+  prevMonth: { income: number; expenses: number };
   healthScore: number;
   totalInvested: number;
   goalsProgress: number;
