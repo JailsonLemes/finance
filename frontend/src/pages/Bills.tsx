@@ -29,12 +29,17 @@ function billStatus(bill: Pick<Bill, 'paid' | 'dueDate'>): Bill['status'] {
   return due < today ? 'overdue' : 'pending';
 }
 
+function parseLocalDate(s: string) {
+  return new Date(s.slice(0, 10) + 'T12:00:00');
+}
+
 function calcTotals(list: Bill[]) {
+  const val = (b: Bill) => parseFloat(String(b.value));
   return {
-    total:   list.reduce((s, b) => s + b.value, 0),
-    paid:    list.filter(b => b.status === 'paid').reduce((s, b) => s + b.value, 0),
-    pending: list.filter(b => b.status === 'pending').reduce((s, b) => s + b.value, 0),
-    overdue: list.filter(b => b.status === 'overdue').reduce((s, b) => s + b.value, 0),
+    total:   list.reduce((s, b) => s + val(b), 0),
+    paid:    list.filter(b => b.status === 'paid').reduce((s, b) => s + val(b), 0),
+    pending: list.filter(b => b.status === 'pending').reduce((s, b) => s + val(b), 0),
+    overdue: list.filter(b => b.status === 'overdue').reduce((s, b) => s + val(b), 0),
   };
 }
 
@@ -85,7 +90,7 @@ export default function BillsPage() {
     reset({
       description: item.description,
       value:       String(item.value),
-      dueDate:     format(new Date(item.dueDate), 'yyyy-MM-dd'),
+      dueDate:     format(parseLocalDate(item.dueDate), 'yyyy-MM-dd'),
       category:    item.category,
       responsible: item.responsible,
       recurrent:   item.recurrent,
@@ -117,11 +122,11 @@ export default function BillsPage() {
     const ws = XLSX.utils.json_to_sheet(filtered.map(b => ({
       Descrição:   b.description,
       Valor:       b.value,
-      Vencimento:  format(new Date(b.dueDate), 'dd/MM/yyyy'),
+      Vencimento:  format(parseLocalDate(b.dueDate), 'dd/MM/yyyy'),
       Categoria:   b.category,
       Responsável: b.responsible,
       Status:      statusLabel[b.status],
-      'Pago Em':   b.paidAt ? format(new Date(b.paidAt), 'dd/MM/yyyy') : '',
+      'Pago Em':   b.paidAt ? format(parseLocalDate(b.paidAt), 'dd/MM/yyyy') : '',
     })));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Contas');
@@ -202,7 +207,7 @@ export default function BillsPage() {
                     {bill.recurrent && <span className="text-xs text-gray-400">Recorrente</span>}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 hidden md:table-cell">
-                    {format(new Date(bill.dueDate), 'dd/MM/yyyy')}
+                    {format(parseLocalDate(bill.dueDate), 'dd/MM/yyyy')}
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
                     <span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-lg text-xs text-gray-600 dark:text-gray-400">

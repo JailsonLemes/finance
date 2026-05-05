@@ -93,11 +93,14 @@ router.get('/', async (req, res, next) => {
 
     if (status) items = items.filter((b) => b.status === status);
 
+    // Normaliza Decimal do Prisma para number
+    items = items.map((b) => ({ ...b, value: Number(b.value) }));
+
     const totals = {
-      total:   items.reduce((s, b) => s + Number(b.value), 0),
-      paid:    items.filter((b) => b.status === 'paid').reduce((s, b) => s + Number(b.value), 0),
-      pending: items.filter((b) => b.status === 'pending').reduce((s, b) => s + Number(b.value), 0),
-      overdue: items.filter((b) => b.status === 'overdue').reduce((s, b) => s + Number(b.value), 0),
+      total:   items.reduce((s, b) => s + b.value, 0),
+      paid:    items.filter((b) => b.status === 'paid').reduce((s, b) => s + b.value, 0),
+      pending: items.filter((b) => b.status === 'pending').reduce((s, b) => s + b.value, 0),
+      overdue: items.filter((b) => b.status === 'overdue').reduce((s, b) => s + b.value, 0),
     };
 
     res.json({ items, totals });

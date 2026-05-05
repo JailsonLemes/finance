@@ -106,7 +106,8 @@ export default function Login() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="label">Seu nome</label>
-                  <input {...registerForm.register('name', { required: true })} className="input" placeholder="João" />
+                  <input {...registerForm.register('name', { required: 'Obrigatório' })} className="input" placeholder="João" />
+                  {registerForm.formState.errors.name && <p className="mt-1 text-xs text-red-500">{registerForm.formState.errors.name.message}</p>}
                 </div>
                 <div>
                   <label className="label">Nome do(a) parceiro(a)</label>
@@ -115,13 +116,14 @@ export default function Login() {
               </div>
               <div>
                 <label className="label">Email</label>
-                <input {...registerForm.register('email', { required: true })} type="email" className="input" placeholder="casal@email.com" />
+                <input {...registerForm.register('email', { required: 'Obrigatório' })} type="email" className="input" placeholder="casal@email.com" />
+                {registerForm.formState.errors.email && <p className="mt-1 text-xs text-red-500">{registerForm.formState.errors.email.message}</p>}
               </div>
               <div>
                 <label className="label">Senha</label>
                 <div className="relative">
                   <input
-                    {...registerForm.register('password', { required: true, minLength: 8 })}
+                    {...registerForm.register('password', { required: 'Obrigatório', minLength: { value: 8, message: 'Mínimo 8 caracteres' } })}
                     type={showPass ? 'text' : 'password'}
                     className="input pr-10"
                     placeholder="Mínimo 8 caracteres"
@@ -130,6 +132,7 @@ export default function Login() {
                     {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                {registerForm.formState.errors.password && <p className="mt-1 text-xs text-red-500">{registerForm.formState.errors.password.message}</p>}
               </div>
               <button type="submit" disabled={loading} className="btn-primary w-full py-2.5 disabled:opacity-60">
                 {loading ? 'Criando conta...' : 'Criar Conta'}
